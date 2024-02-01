@@ -1,77 +1,54 @@
-from ultralytics import YOLO
+import numpy as np
+import onnxruntime
 import cv2
-import matplotlib.pyplot as plt
 import os
 
 
-class OnnxModel(object):
-    def __init__(self, path, image):
-        self._path = path
-        self._image = image
-        self._model = YOLO(self._path)
-        self._predict = self._model.predict(self._image, task='detect')
+class YoloModel(object):
 
-    @property
-    def get_boxes(self):
-        boxes = self._predict[0].boxes
-        if boxes is None:
-            return []
+    def __init__(self,
+                 onnx_path: str,
+                 input_size=(640, 640),
+                 box_score=0.7,
+                 iou_threshold=0.45
+                 ):
 
-        boxes = boxes.cpu().numpy()
-        xyxys = boxes.xyxy
+        assert onnx_path.endswith('.onnx'), f'Only .onnx files are supported: {onnx_path}'
+        assert os.path.exists(onnx_path), f'model not found: {onnx_path}'
 
-        return xyxys.tolist()
+        self.ort_sess = onnxruntime.InferenceSession(onnx_path)
+        print('input info: ', self.ort_sess.get_inputs()[0])
+        print('output info: ', self.ort_sess.get_outputs()[0])
+        self.input_size = input_size
+        self.box_score = box_score
+        self.iou_threshold = iou_threshold
 
-    def crop_obj(self, path=None):
-        boxes = self.get_boxes
-        if len(boxes) == 0:
-            print(f'лиц нет')
-            return f'лиц нет'
+    def _preprocess(self, img: np.array):
+        input_w, input_h = self.input_size
+        if len(img.shape) == 3:
+            padded_img = np.ones((input_w, input_h, 3), dtype=np.uint8) * 114
+        else:
+            padded_img = np.ones(self.input_size, dtype=np.uint8) * 114
+        r = min(input_w / img.shape[0], input_h / img.shape[1])
+        resized_img = cv2.resize(
+            img,
+            (int(img.shape[1] * r), int(img.shape[0] * r)),
+            interpolation=cv2.INTER_LINEAR,
+        ).astype(np.uint8)
 
-        image = cv2.imread(self._image)
-        for i, box in enumerate(boxes):
-            x1, y1, x2, y2 = box
-            crop_obj = image[int(y1):int(y2), int(x1):int(x2)]
-            image_name = 'croped_image_' + str(i) + '.jpg'
-            if path is None:
-                cv2.imwrite(image_name, crop_obj)
-            else:
-                cv2.imwrite(os.path.join(path, image_name), crop_obj)
+        padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
+        # (H, W, C) BGR -> (C, H, W) RGB
+        padded_img = padded_img.transpose((2, 0, 1))[::-1, ]
+        padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
+        return padded_img, r
 
+    def _postprocess(self):
+        pass
 
-    def crop_obj_not_image(self, path=None): #временное название метода, (метод возвращает координаты лица и лендмарки)
-        boxes = self.get_boxes
-        if len(boxes) == 0:
-            print(f'лиц нет')
-            return f'лиц нет'
-
-        image = cv2.imread(self._image)
-        croped_faces = []
-        for i, box in enumerate(boxes):
-            x1, y1, x2, y2 = box
-            crop_obj = image[int(y1):int(y2), int(x1):int(x2)]
-            croped_faces.append(crop_obj)
-
-
-
-    def view_model(self): # временный метод, показывает результаты работы модели
-        return self._predict
-
-
-    def view(self): #временный метод для вывода результата на изображения
-        image = self._image
-        image = cv2.imread(image)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        xyxys = self.get_boxes()
-
-        for xyxy in xyxys:
-            image = cv2.rectangle(image,
-                                  (int(xyxy[0]), int(xyxy[1])),
-                                  (int(xyxy[2]), int(xyxy[3])),
-                                  (255, 0, 0),
-                                  2)
-
-        plt.imshow(image)
-        plt.show()
+    def detect(self, img):
+        img, ratio = self._preprocess(img)
+        ort_input = {self.ort_sess.get_inputs()[0].name: img}
+        output = self.ort_sess.run(None, ort_input)
+        # result = self._postprocess()
+        return
 

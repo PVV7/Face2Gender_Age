@@ -1,1 +1,1 @@
-from .detector import OnnxModel
+from .detector import YoloModel
