@@ -2,7 +2,7 @@ import numpy as np
 import onnxruntime
 import cv2
 import os
-
+from typing import List, Tuple, Dict
 
 class YoloModel(object):
 
@@ -23,7 +23,7 @@ class YoloModel(object):
         self.box_score = box_score
         self.iou_threshold = iou_threshold
 
-    def _preprocess(self, img: np.array):
+    def preprocess(self, img: np.array) -> Tuple:
         input_w, input_h = self.input_size
         if len(img.shape) == 3:
             padded_img = np.ones((input_w, input_h, 3), dtype=np.uint8) * 114
@@ -37,18 +37,118 @@ class YoloModel(object):
         ).astype(np.uint8)
 
         padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
-        # (H, W, C) BGR -> (C, H, W) RGB
+        img_for_view = padded_img.copy()  # временная переменная для отладки
+        # (H, W, C) BGR -> (C, H, W) RGB (формат для подачи изображения в ONNX)
         padded_img = padded_img.transpose((2, 0, 1))[::-1, ]
         padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
-        return padded_img, r
+        return padded_img, img_for_view, r # убрать временную переменную (img_for_view)
 
-    def _postprocess(self):
-        pass
+    def _postprocess(self, output: List[np.ndarray]) -> Dict:
+        out = output[0][0]
+        class_index = out[4]
+        box_x = out[0]
+        box_y = out[1]
+        box_width = out[2]
+        box_height = out[3]
+
+        kps = out[5:]
+
+        landmarks = [obj for obj in zip(*kps)]
+
+        box_and_points = [obj for obj in zip(class_index,
+                                             box_x,
+                                             box_y,
+                                             box_width,
+                                             box_height,
+                                             landmarks
+                                             )
+                          ]
+
+        box_and_points = [obj for obj in box_and_points if obj[0] > self.box_score]
+        box_and_points = self._NMS(box_and_points, iou_thresh=self.iou_threshold)
+
+        result = [{'score': obj[0],
+                   'boxes': obj[1:5],
+                   'kpts': obj[5]}
+                  for obj in box_and_points]
+
+        return result
 
     def detect(self, img):
-        img, ratio = self._preprocess(img)
+        img, img_for_view, ratio = self.preprocess(img) # убрать временную переменную (img_for_view)
+        img = img[None, :] / 255
         ort_input = {self.ort_sess.get_inputs()[0].name: img}
         output = self.ort_sess.run(None, ort_input)
-        # result = self._postprocess()
-        return
+        result = self._postprocess(output)
+        return result
 
+    def _NMS(self, box_and_points, iou_thresh=0.45):
+        remove_flags = [False] * len(box_and_points)
+        keep_boxes = []
+
+        for i, ibox in enumerate(box_and_points):
+            if remove_flags[i]:
+                continue
+
+            box = ibox[1:5]
+
+            keep_boxes.append(ibox)
+
+            for j in range(i + 1, len(box_and_points)):
+                jbox = box_and_points[j]
+                jbox = jbox[1:5]
+
+                if self._iou(box, jbox) > iou_thresh:
+                    remove_flags[j] = True
+
+        return keep_boxes
+
+    def _xywh2xyxy(self, box_xywh):
+        cx, cy, w, h = box_xywh
+
+        left_x = cx - w * 0.5
+        top_y = cy - h * 0.5
+        right_x = cx + w * 0.5
+        bottom_y = cy + h * 0.5
+
+        return left_x, top_y, right_x, bottom_y
+
+    def _iou(self, box1, box2):
+        box1_coord = self._xywh2xyxy(box1)
+        box2_coord = self._xywh2xyxy(box2)
+
+        box1_area = (box1_coord[2] - box1_coord[0]) * (box1_coord[3] - box1_coord[1])
+        box2_area = (box2_coord[2] - box2_coord[0]) * (box2_coord[3] - box2_coord[1])
+
+        intersection = np.array([
+            max(box1_coord[0], box2_coord[0]),
+            max(box1_coord[1], box2_coord[1]),
+            min(box1_coord[2], box2_coord[2]),
+            min(box1_coord[3], box2_coord[3]),
+        ])
+
+        intersection_area = (intersection[2] - intersection[0]) * (intersection[3] - intersection[1])
+        union_area = box1_area + box2_area - intersection_area
+
+        iou = intersection_area / union_area
+
+        return iou
+
+    def draw(self, image):
+        points = self.detect(image)
+        for point in points:
+            box = point['boxes']
+            kpts = point['kpts']
+
+            left_x, left_y, right_x, right_y = self._xywh2xyxy(box)
+
+            image = cv2.rectangle(image,
+                                  (int(left_x), int(left_y)),
+                                  (int(right_x), int(right_y)),
+                                  (255, 0, 0),
+                                  1)
+
+            for i in range(0, len(kpts), 3):
+                image = cv2.circle(image, (int(kpts[i]), int(kpts[i + 1])), 5, (0, 255, 0), thickness=-1)
+
+        return image
