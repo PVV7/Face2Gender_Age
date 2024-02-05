@@ -4,9 +4,13 @@ import cv2
 import os
 from typing import List, Tuple, Dict
 
+#TODO: 1) рассмотреть другой алгоритм, который работает с np.array (_postprocess) \
+#      2) подписать все методы в классе, что в них приходит и что они выдают
+
 class YoloModel(object):
 
     def __init__(self,
+                 image: np.array,
                  onnx_path: str,
                  input_size=(640, 640),
                  box_score=0.7,
@@ -16,6 +20,7 @@ class YoloModel(object):
         assert onnx_path.endswith('.onnx'), f'Only .onnx files are supported: {onnx_path}'
         assert os.path.exists(onnx_path), f'model not found: {onnx_path}'
 
+        self.image = image
         self.ort_sess = onnxruntime.InferenceSession(onnx_path)
         print('input info: ', self.ort_sess.get_inputs()[0])
         print('output info: ', self.ort_sess.get_outputs()[0])
@@ -43,7 +48,7 @@ class YoloModel(object):
         padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
         return padded_img, img_for_view, r # убрать временную переменную (img_for_view)
 
-    def _postprocess(self, output: List[np.ndarray]) -> Dict:
+    def _postprocess(self, output: List[np.ndarray]) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
         out = output[0][0]
         class_index = out[4]
         box_x = out[0]
@@ -67,11 +72,10 @@ class YoloModel(object):
         box_and_points = [obj for obj in box_and_points if obj[0] > self.box_score]
         box_and_points = self._NMS(box_and_points, iou_thresh=self.iou_threshold)
 
-        result = [{'score': obj[0],
-                   'boxes': obj[1:5],
-                   'kpts': obj[5]}
-                  for obj in box_and_points]
-
+        result = [{'score': np.array(obj[0]),
+                   'boxes': np.array(obj[1:5]),
+                   'kpts': np.array(obj[5])}
+                  for obj in box_and_points] # временный result, позже надо убрать np.array во всех значения по ключам
         return result
 
     def detect(self, img):

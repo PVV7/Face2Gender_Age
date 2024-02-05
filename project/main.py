@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == '__main__':
-    image = cv2.imread(r'D:\Plotnikov\DS\DS_projects\Face2Gender_Age\Detector\Photo\2.jpg')
+    image = cv2.imread(r'D:\Plotnikov\DS\DS_projects\Face2Gender_Age\Detector\Photo\14.jpg')
     # plt.imshow(image)
     # plt.show()
 
