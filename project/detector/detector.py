@@ -28,7 +28,8 @@ class YoloModel(object):
         self.box_score = box_score
         self.iou_threshold = iou_threshold
 
-    def preprocess(self, img: np.array) -> Tuple:
+    def preprocess(self) -> Tuple:
+        img = self.image
         input_w, input_h = self.input_size
         if len(img.shape) == 3:
             padded_img = np.ones((input_w, input_h, 3), dtype=np.uint8) * 114
@@ -48,7 +49,7 @@ class YoloModel(object):
         padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
         return padded_img, img_for_view, r # убрать временную переменную (img_for_view)
 
-    def _postprocess(self, output: List[np.ndarray]) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
+    def _postprocess(self, output: List[np.ndarray], ratio) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
         out = output[0][0]
         class_index = out[4]
         box_x = out[0]
@@ -73,17 +74,17 @@ class YoloModel(object):
         box_and_points = self._NMS(box_and_points, iou_thresh=self.iou_threshold)
 
         result = [{'score': np.array(obj[0]),
-                   'boxes': np.array(obj[1:5]),
-                   'kpts': np.array(obj[5])}
+                   'boxes': np.array(obj[1:5]) / ratio,
+                   'kpts': np.array(obj[5]) / ratio}
                   for obj in box_and_points] # временный result, позже надо убрать np.array во всех значения по ключам
         return result
 
-    def detect(self, img):
-        img, img_for_view, ratio = self.preprocess(img) # убрать временную переменную (img_for_view)
+    def detect(self):
+        img, img_for_view, ratio = self.preprocess() # убрать временную переменную (img_for_view)
         img = img[None, :] / 255
         ort_input = {self.ort_sess.get_inputs()[0].name: img}
         output = self.ort_sess.run(None, ort_input)
-        result = self._postprocess(output)
+        result = self._postprocess(output, ratio)
         return result
 
     def _NMS(self, box_and_points, iou_thresh=0.45):
@@ -138,15 +139,15 @@ class YoloModel(object):
 
         return iou
 
-    def draw(self, image):
-        points = self.detect(image)
+    def draw(self):
+        points = self.detect()
         for point in points:
             box = point['boxes']
             kpts = point['kpts']
 
             left_x, left_y, right_x, right_y = self._xywh2xyxy(box)
 
-            image = cv2.rectangle(image,
+            image = cv2.rectangle(self.image,
                                   (int(left_x), int(left_y)),
                                   (int(right_x), int(right_y)),
                                   (255, 0, 0),
@@ -155,4 +156,5 @@ class YoloModel(object):
             for i in range(0, len(kpts), 3):
                 image = cv2.circle(image, (int(kpts[i]), int(kpts[i + 1])), 5, (0, 255, 0), thickness=-1)
 
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
