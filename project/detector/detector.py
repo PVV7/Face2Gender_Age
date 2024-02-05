@@ -49,34 +49,56 @@ class YoloModel(object):
         padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
         return padded_img, r
 
+    # def _postprocess(self, output: List[np.ndarray], ratio) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
+    #     out = output[0][0]
+    #     class_index = out[4]
+    #     box_x = out[0]
+    #     box_y = out[1]
+    #     box_width = out[2]
+    #     box_height = out[3]
+    #
+    #     kps = out[5:]
+    #
+    #     landmarks = [obj for obj in zip(*kps)]
+    #
+    #     box_and_points = [obj for obj in zip(class_index,
+    #                                          box_x,
+    #                                          box_y,
+    #                                          box_width,
+    #                                          box_height,
+    #                                          landmarks
+    #                                          )
+    #                       ]
+    #
+    #     box_and_points = [obj for obj in box_and_points if obj[0] > self.box_score]
+    #     box_and_points = self._NMS(box_and_points, iou_thresh=self.iou_threshold)
+    #
+    #     result = [{'score': np.array(obj[0]),
+    #                'boxes': np.array(obj[1:5]) / ratio,
+    #                'kpts': np.array(obj[5]) / ratio}
+    #               for obj in box_and_points] # временный result, позже надо убрать np.array во всех значения по ключам
+    #     return result
+
     def _postprocess(self, output: List[np.ndarray], ratio) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
-        out = output[0][0]
-        class_index = out[4]
-        box_x = out[0]
-        box_y = out[1]
-        box_width = out[2]
-        box_height = out[3]
+        predict = output[0].squeeze(0).T
+        predict = predict[predict[:, 4] > self.box_score, :]
+        scores = predict[:, 4]
+        boxes = predict[:, 0:4] / ratio
+        kpts  = predict[:, 5:] / ratio
 
-        kps = out[5:]
-
-        landmarks = [obj for obj in zip(*kps)]
-
-        box_and_points = [obj for obj in zip(class_index,
-                                             box_x,
-                                             box_y,
-                                             box_width,
-                                             box_height,
-                                             landmarks
+        box_and_points = [obj for obj in zip(scores,
+                                             boxes,
+                                             kpts
                                              )
                           ]
 
-        box_and_points = [obj for obj in box_and_points if obj[0] > self.box_score]
         box_and_points = self._NMS(box_and_points, iou_thresh=self.iou_threshold)
 
-        result = [{'score': np.array(obj[0]),
-                   'boxes': np.array(obj[1:5]) / ratio,
-                   'kpts': np.array(obj[5]) / ratio}
-                  for obj in box_and_points] # временный result, позже надо убрать np.array во всех значения по ключам
+        result = [{'score': obj[0],
+                   'boxes': obj[1],
+                   'kpts':  obj[2]}
+                    for obj in box_and_points]
+
         return result
 
     def detect(self):
@@ -95,13 +117,13 @@ class YoloModel(object):
             if remove_flags[i]:
                 continue
 
-            box = ibox[1:5]
+            box = ibox[1]
 
             keep_boxes.append(ibox)
 
             for j in range(i + 1, len(box_and_points)):
                 jbox = box_and_points[j]
-                jbox = jbox[1:5]
+                jbox = jbox[1]
 
                 if self._iou(box, jbox) > iou_thresh:
                     remove_flags[j] = True
@@ -151,10 +173,10 @@ class YoloModel(object):
                                   (int(left_x), int(left_y)),
                                   (int(right_x), int(right_y)),
                                   (255, 0, 0),
-                                  1)
+                                  3)
 
             for i in range(0, len(kpts), 3):
-                image = cv2.circle(image, (int(kpts[i]), int(kpts[i + 1])), 5, (0, 255, 0), thickness=-1)
+                image = cv2.circle(image, (int(kpts[i]), int(kpts[i + 1])), 8, (0, 255, 0), thickness=-1)
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
