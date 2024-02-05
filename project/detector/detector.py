@@ -84,7 +84,12 @@ class YoloModel(object):
         predict = predict[predict[:, 4] > self.box_score, :]
         scores = predict[:, 4]
         boxes = predict[:, 0:4] / ratio
-        kpts  = predict[:, 5:] / ratio
+        kpts = predict[:, 5:]
+
+        for i in range(kpts.shape[0]):
+            for j in range(0, kpts.shape[1], 3):
+                kpts[i, j] /= ratio
+                kpts[i, j+1] /= ratio
 
         box_and_points = [obj for obj in zip(scores,
                                              boxes,
