@@ -6,6 +6,7 @@ from typing import List, Tuple, Dict
 
 #TODO: 1) рассмотреть другой алгоритм, который работает с np.array (_postprocess) \
 #      2) подписать все методы в классе, что в них приходит и что они выдают
+#      3) прописать assert для двух форматов картинок в init
 
 class YoloModel(object):
 
@@ -43,11 +44,10 @@ class YoloModel(object):
         ).astype(np.uint8)
 
         padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
-        img_for_view = padded_img.copy()  # временная переменная для отладки
         # (H, W, C) BGR -> (C, H, W) RGB (формат для подачи изображения в ONNX)
         padded_img = padded_img.transpose((2, 0, 1))[::-1, ]
         padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
-        return padded_img, img_for_view, r # убрать временную переменную (img_for_view)
+        return padded_img, r
 
     def _postprocess(self, output: List[np.ndarray], ratio) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
         out = output[0][0]
@@ -80,7 +80,7 @@ class YoloModel(object):
         return result
 
     def detect(self):
-        img, img_for_view, ratio = self.preprocess() # убрать временную переменную (img_for_view)
+        img, ratio = self.preprocess()
         img = img[None, :] / 255
         ort_input = {self.ort_sess.get_inputs()[0].name: img}
         output = self.ort_sess.run(None, ort_input)
