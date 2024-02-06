@@ -4,8 +4,7 @@ import cv2
 import os
 from typing import List, Tuple, Dict
 
-#TODO: 1) рассмотреть другой алгоритм, который работает с np.array (_postprocess) \
-#      2) подписать все методы в классе, что в них приходит и что они выдают
+#TODO: 2) подписать все методы в классе, что в них приходит и что они выдают
 #      3) прописать assert для двух форматов картинок в init
 
 class YoloModel(object):
@@ -49,36 +48,6 @@ class YoloModel(object):
         padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
         return padded_img, r
 
-    # def _postprocess(self, output: List[np.ndarray], ratio) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
-    #     out = output[0][0]
-    #     class_index = out[4]
-    #     box_x = out[0]
-    #     box_y = out[1]
-    #     box_width = out[2]
-    #     box_height = out[3]
-    #
-    #     kps = out[5:]
-    #
-    #     landmarks = [obj for obj in zip(*kps)]
-    #
-    #     box_and_points = [obj for obj in zip(class_index,
-    #                                          box_x,
-    #                                          box_y,
-    #                                          box_width,
-    #                                          box_height,
-    #                                          landmarks
-    #                                          )
-    #                       ]
-    #
-    #     box_and_points = [obj for obj in box_and_points if obj[0] > self.box_score]
-    #     box_and_points = self._NMS(box_and_points, iou_thresh=self.iou_threshold)
-    #
-    #     result = [{'score': np.array(obj[0]),
-    #                'boxes': np.array(obj[1:5]) / ratio,
-    #                'kpts': np.array(obj[5]) / ratio}
-    #               for obj in box_and_points] # временный result, позже надо убрать np.array во всех значения по ключам
-    #     return result
-
     def _postprocess(self, output: List[np.ndarray], ratio) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
         predict = output[0].squeeze(0).T
         predict = predict[predict[:, 4] > self.box_score, :]
@@ -103,7 +72,6 @@ class YoloModel(object):
                    'boxes': obj[1],
                    'kpts':  obj[2]}
                     for obj in box_and_points]
-
         return result
 
     def detect(self):
