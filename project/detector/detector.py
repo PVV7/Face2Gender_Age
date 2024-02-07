@@ -2,15 +2,13 @@ import numpy as np
 import onnxruntime
 import cv2
 import os
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Any
+from project.utils import xywh2xyxy, NMS
 
-#TODO: 2) подписать все методы в классе, что в них приходит и что они выдают
-#      3) прописать assert для двух форматов картинок в init
 
 class YoloModel(object):
 
     def __init__(self,
-                 image: np.array,
                  onnx_path: str,
                  input_size=(640, 640),
                  box_score=0.7,
@@ -20,7 +18,6 @@ class YoloModel(object):
         assert onnx_path.endswith('.onnx'), f'Only .onnx files are supported: {onnx_path}'
         assert os.path.exists(onnx_path), f'model not found: {onnx_path}'
 
-        self.image = image
         self.ort_sess = onnxruntime.InferenceSession(onnx_path)
         print('input info: ', self.ort_sess.get_inputs()[0])
         print('output info: ', self.ort_sess.get_outputs()[0])
@@ -28,8 +25,8 @@ class YoloModel(object):
         self.box_score = box_score
         self.iou_threshold = iou_threshold
 
-    def preprocess(self) -> Tuple:
-        img = self.image
+    def _preprocess(self, image: np.ndarray) -> Tuple:
+        img = image
         input_w, input_h = self.input_size
         if len(img.shape) == 3:
             padded_img = np.ones((input_w, input_h, 3), dtype=np.uint8) * 114
@@ -48,7 +45,10 @@ class YoloModel(object):
         padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
         return padded_img, r
 
-    def _postprocess(self, output: List[np.ndarray], ratio) -> Dict: # рассмотреть другой алгоритм, который работает с np.array
+    def _postprocess(self,
+                     output: List[np.ndarray],
+                     ratio: float) -> List[Dict]:
+
         predict = output[0].squeeze(0).T
         predict = predict[predict[:, 4] > self.box_score, :]
         scores = predict[:, 4]
@@ -66,7 +66,7 @@ class YoloModel(object):
                                              )
                           ]
 
-        box_and_points = self._NMS(box_and_points, iou_thresh=self.iou_threshold)
+        box_and_points = NMS(box_and_points, iou_thresh=self.iou_threshold)
 
         result = [{'score': obj[0],
                    'boxes': obj[1],
@@ -74,75 +74,23 @@ class YoloModel(object):
                     for obj in box_and_points]
         return result
 
-    def detect(self):
-        img, ratio = self.preprocess()
+    def detect(self, image: np.ndarray) -> List[Dict]:
+
+        img, ratio = self._preprocess(image)
         img = img[None, :] / 255
         ort_input = {self.ort_sess.get_inputs()[0].name: img}
         output = self.ort_sess.run(None, ort_input)
         result = self._postprocess(output, ratio)
         return result
 
-    def _NMS(self, box_and_points, iou_thresh=0.45):
-        remove_flags = [False] * len(box_and_points)
-        keep_boxes = []
-
-        for i, ibox in enumerate(box_and_points):
-            if remove_flags[i]:
-                continue
-
-            box = ibox[1]
-
-            keep_boxes.append(ibox)
-
-            for j in range(i + 1, len(box_and_points)):
-                jbox = box_and_points[j]
-                jbox = jbox[1]
-
-                if self._iou(box, jbox) > iou_thresh:
-                    remove_flags[j] = True
-
-        return keep_boxes
-
-    def _xywh2xyxy(self, box_xywh):
-        cx, cy, w, h = box_xywh
-
-        left_x = cx - w * 0.5
-        top_y = cy - h * 0.5
-        right_x = cx + w * 0.5
-        bottom_y = cy + h * 0.5
-
-        return left_x, top_y, right_x, bottom_y
-
-    def _iou(self, box1, box2):
-        box1_coord = self._xywh2xyxy(box1)
-        box2_coord = self._xywh2xyxy(box2)
-
-        box1_area = (box1_coord[2] - box1_coord[0]) * (box1_coord[3] - box1_coord[1])
-        box2_area = (box2_coord[2] - box2_coord[0]) * (box2_coord[3] - box2_coord[1])
-
-        intersection = np.array([
-            max(box1_coord[0], box2_coord[0]),
-            max(box1_coord[1], box2_coord[1]),
-            min(box1_coord[2], box2_coord[2]),
-            min(box1_coord[3], box2_coord[3]),
-        ])
-
-        intersection_area = (intersection[2] - intersection[0]) * (intersection[3] - intersection[1])
-        union_area = box1_area + box2_area - intersection_area
-
-        iou = intersection_area / union_area
-
-        return iou
-
-    def draw(self):
-        points = self.detect()
+    def draw(self, image: np.ndarray) -> np.ndarray:
+        points = self.detect(image)
         for point in points:
             box = point['boxes']
             kpts = point['kpts']
 
-            left_x, left_y, right_x, right_y = self._xywh2xyxy(box)
-
-            image = cv2.rectangle(self.image,
+            left_x, left_y, right_x, right_y = xywh2xyxy(box)
+            image = cv2.rectangle(image,
                                   (int(left_x), int(left_y)),
                                   (int(right_x), int(right_y)),
                                   (255, 0, 0),
@@ -153,3 +101,4 @@ class YoloModel(object):
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
+
