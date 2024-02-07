@@ -23,15 +23,15 @@ class Aligner(object):
                                         xy: np.ndarray,
                                         K=2) -> np.ndarray:
         M = xy.shape[0]
-        x = xy[:, 0].reshape((-1, 1))  # use reshape to keep a column vector
-        y = xy[:, 1].reshape((-1, 1))  # use reshape to keep a column vector
+        x = xy[:, 0].reshape((-1, 1))
+        y = xy[:, 1].reshape((-1, 1))
 
         tmp1 = np.hstack((x, y, np.ones((M, 1)), np.zeros((M, 1))))
         tmp2 = np.hstack((y, -x, np.zeros((M, 1)), np.ones((M, 1))))
         X = np.vstack((tmp1, tmp2))
 
-        u = uv[:, 0].reshape((-1, 1))  # use reshape to keep a column vector
-        v = uv[:, 1].reshape((-1, 1))  # use reshape to keep a column vector
+        u = uv[:, 0].reshape((-1, 1))
+        v = uv[:, 1].reshape((-1, 1))
         U = np.vstack((u, v))
 
         # We know that X * r = U
