@@ -11,7 +11,7 @@ class YoloModel(object):
     def __init__(self,
                  onnx_path: str,
                  input_size=(640, 640),
-                 box_score=0.7,
+                 box_score=0.2, #0,3
                  iou_threshold=0.45
                  ):
 
@@ -19,6 +19,7 @@ class YoloModel(object):
         assert os.path.exists(onnx_path), f'model not found: {onnx_path}'
 
         self.ort_sess = onnxruntime.InferenceSession(onnx_path)
+        print('Detector')
         print('input info: ', self.ort_sess.get_inputs()[0])
         print('output info: ', self.ort_sess.get_outputs()[0])
         self.input_size = input_size

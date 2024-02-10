@@ -1,0 +1,1 @@
+from .classificator import Classificator

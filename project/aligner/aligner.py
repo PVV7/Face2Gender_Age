@@ -6,11 +6,7 @@ from numpy.linalg import matrix_rank as rank
 from project.utils import xywh2xyxy
 
 class Aligner(object):
-    def __init__(self,
-                 image: np.array,
-                 face_info: List[Dict]):
-        self.image = image
-        self.face_info = face_info
+    def __init__(self):
         self._standart_facial_points = np.array(
                                         [[30.2946, 51.6963],
                                          [65.5318, 51.6963],
@@ -97,11 +93,16 @@ class Aligner(object):
 
         return face_info
 
-    def align_faces(self) -> List[np.ndarray]:
+
+
+    def align_faces(self,
+                    image: np.ndarray,
+                    face_info: List[Dict]
+                    ) -> List[np.ndarray]:
         faces = []
 
-        box_and_points = self.face_info
-        img = self.image
+        box_and_points = face_info
+        img = image
 
         face_infos = self._face_info(box_and_points)
 
@@ -115,3 +116,11 @@ class Aligner(object):
 
         return faces
 
+    # def save_crop(self):
+    #     faces = self.align_faces()
+    #     if len(faces) == 0:
+    #         return f'лиц нет'
+    #
+    #     for i, crop in enumerate(faces):
+    #         crop = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+    #         cv2.imwrite('croped_image_' + str(i) + '.jpg', crop)
