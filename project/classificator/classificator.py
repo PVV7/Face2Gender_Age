@@ -70,9 +70,12 @@ class Classificator(object):
                      results: List[np.ndarray],
                      last_index: int) -> List[np.ndarray]:
 
-        if len(results) <=1:
-            # return results[0][last_index]
-            return results
+        if len(results) <= 1:
+            temp = []
+            for obj in results:
+                for i in range(len(obj)):
+                    temp.append(obj[i][:last_index])
+            return temp
         else:
             last_images = []
             for obj in results[-1]:
