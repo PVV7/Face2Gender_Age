@@ -4,11 +4,6 @@ from classificator import Classificator
 import cv2
 import matplotlib.pyplot as plt
 
-#:TODO обработать вариант с неправильным форматом изображения
-#:TODO обработать вариант, когда на фото нет лиц
-#:TODO добавить расшифровку информации после классификатора
-#:TODO попробовать обучить более тяжелую модель (детектор)
-
 
 if __name__ == '__main__':
 
