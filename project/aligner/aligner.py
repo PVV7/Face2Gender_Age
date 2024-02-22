@@ -5,6 +5,7 @@ from numpy.linalg import inv, lstsq
 from numpy.linalg import matrix_rank as rank
 from project.utils import xywh2xyxy
 
+
 class Aligner(object):
     def __init__(self):
         self._standart_facial_points = np.array(
@@ -93,14 +94,13 @@ class Aligner(object):
 
         return face_info
 
-
-
     def align_faces(self,
                     image: np.ndarray,
                     face_info: List[Dict]
                     ) -> List[np.ndarray]:
-        faces = []
+        assert len(face_info) > 0, 'There are no people in the image'
 
+        faces = []
         box_and_points = face_info
         img = image
 

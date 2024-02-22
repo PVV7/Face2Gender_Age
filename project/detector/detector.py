@@ -11,12 +11,13 @@ class YoloModel(object):
     def __init__(self,
                  onnx_path: str,
                  input_size=(640, 640),
-                 box_score=0.2, #0,3
+                 box_score=0.3,
                  iou_threshold=0.45
                  ):
 
         assert onnx_path.endswith('.onnx'), f'Only .onnx files are supported: {onnx_path}'
         assert os.path.exists(onnx_path), f'model not found: {onnx_path}'
+
 
         self.ort_sess = onnxruntime.InferenceSession(onnx_path)
         print('Detector')
@@ -77,11 +78,15 @@ class YoloModel(object):
 
     def detect(self, image: np.ndarray) -> List[Dict]:
 
+        assert image is not None, 'Image cannot be None'
+
         img, ratio = self._preprocess(image)
         img = img[None, :] / 255
         ort_input = {self.ort_sess.get_inputs()[0].name: img}
         output = self.ort_sess.run(None, ort_input)
         result = self._postprocess(output, ratio)
+
+        assert len(result) > 0, 'There are no people in the image'
         return result
 
     def draw(self, image: np.ndarray) -> np.ndarray:

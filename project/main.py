@@ -7,21 +7,21 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
-    image_path = r'project\photo\1.jpg'
+    # read image
+    image_path = r'project\photo\15.jpg'
     image = cv2.imread(image_path)
 
-
+    # detecting faces in the image
     ONNX_model = r'project\detector\weights\yolov8n-face.onnx'
     model_detector = YoloModel(ONNX_model)
     res = model_detector.detect(image)
 
-    img = model_detector.draw(image)
-    # plt.imshow(img)
-    # plt.show()
+    # align the resulting faces
     aligner = Aligner()
     align_images = aligner.align_faces(image, res)
 
-
+    # classify persons by gender and age
     classificator = Classificator(r'project/classificator/weights/Face2AgeGender.onnx')
     res = classificator.classificate(align_images)
+
     print(res)
