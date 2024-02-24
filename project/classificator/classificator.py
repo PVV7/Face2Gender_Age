@@ -51,7 +51,6 @@ class Classificator(object):
         shape_from_ONNX = self.ort_sess.get_inputs()[0].shape
         matrix_images = np.ones((shape_from_ONNX))
         matrix_images = matrix_images.astype('float32')
-        print(matrix_images.shape)
 
         last_index = len(split_list[-1])
         results = []
@@ -63,26 +62,36 @@ class Classificator(object):
             results.append(output)
 
         res = self._postprocess(results, last_index)
-        print('result', type(res))
         return res
 
     def _postprocess(self,
                      results: List[np.ndarray],
-                     last_index: int) -> List[np.ndarray]:
+                     last_index: int) -> List[Tuple]:
 
         if len(results) <= 1:
             temp = []
             for obj in results:
                 for i in range(len(obj)):
-                    temp.append(obj[i][:last_index])
-            return temp
-        else:
-            last_images = []
-            for obj in results[-1]:
-                last_images.append(obj[:last_index])
+                    temp.extend(obj[i][:last_index])
+
+            age = int(np.round(temp[0]))
+            gender = np.argmax(temp[1])
+            return [age, gender]
+
+        last_images = []
+        for obj in results[-1]:
+            last_images.append(obj[:last_index])
 
         result = results[:-1] + [last_images]
-        return result
+
+        res = []
+        for obj in result:
+            for age, gender in zip(obj[0], obj[1]):
+                age = int(np.round(age))
+                gender = np.argmax(gender)
+                res.append((age, gender))
+
+        return res
 
 
 
