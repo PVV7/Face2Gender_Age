@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
 
     # read image
-    image_path = r'project\photo\6.png'
+    image_path = r'project/photo/6.png'
     image = cv2.imread(image_path)
 
     # detecting faces in the image
-    ONNX_model = r'project\detector\weights\yolov8n-face.onnx'
+    ONNX_model = r'project/detector/weights/yolov8n-face.onnx'
     model_detector = YoloModel(ONNX_model)
     res = model_detector.detect(image)
 
