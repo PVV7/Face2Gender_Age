@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
 
     # read image
-    image_path = r'project\photo\63.jpg'
+    image_path = r'project\photo\6.png'
     image = cv2.imread(image_path)
 
     # detecting faces in the image
