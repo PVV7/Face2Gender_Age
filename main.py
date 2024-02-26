@@ -20,8 +20,6 @@ if __name__ == '__main__':
     aligner = Aligner()
     align_images = aligner.align_faces(image, res)
 
-
-
     #classify persons by gender and age
     classificator = Classificator(r'project/classificator/weights/Face2AgeGender.onnx')
     res = classificator.classificate(align_images)
