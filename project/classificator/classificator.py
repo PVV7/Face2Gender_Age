@@ -76,7 +76,7 @@ class Classificator(object):
 
             age = int(np.round(temp[0]))
             gender = np.argmax(temp[1])
-            return [age, gender]
+            return [(age, gender)]
 
         last_images = []
         for obj in results[-1]:

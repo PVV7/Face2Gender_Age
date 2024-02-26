@@ -1,6 +1,6 @@
-from detector.detector import YoloModel
-from aligner.aligner import Aligner
-from classificator import Classificator
+from project.detector.detector import YoloModel
+from project.aligner.aligner import Aligner
+from project.classificator import Classificator
 import cv2
 import matplotlib.pyplot as plt
 
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
 
     # read image
-    image_path = r'project\photo\6.png'
+    image_path = r'project\photo\63.jpg'
     image = cv2.imread(image_path)
 
     # detecting faces in the image
@@ -16,11 +16,13 @@ if __name__ == '__main__':
     model_detector = YoloModel(ONNX_model)
     res = model_detector.detect(image)
 
-    # align the resulting faces
+    #align the resulting faces
     aligner = Aligner()
     align_images = aligner.align_faces(image, res)
 
-    # classify persons by gender and age
+
+
+    #classify persons by gender and age
     classificator = Classificator(r'project/classificator/weights/Face2AgeGender.onnx')
     res = classificator.classificate(align_images)
 
