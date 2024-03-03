@@ -3,6 +3,9 @@ import cv2
 from typing import List, Tuple, Dict, Any
 import os
 import numpy as np
+from PIL import Image
+from torchvision import transforms
+
 
 
 class Classificator(object):
@@ -38,10 +41,9 @@ class Classificator(object):
     def _preprocess(self, image: np.ndarray) -> np.ndarray:
         img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, dsize=(112, 112), interpolation=cv2.INTER_AREA)
-
-        img = img.transpose((2, 0, 1))
-        img = np.ascontiguousarray(img, dtype=np.float32)
-
+        img = Image.fromarray(img)
+        transform = transforms.Compose([transforms.ToTensor()])
+        img = transform(img)
         return img
 
     def classificate(self, crops: List[np.ndarray]) -> List[Any]:
