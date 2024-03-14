@@ -10,3 +10,5 @@ COPY requirements.txt /usr/project
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["python", "main.py"]
+CMD cd /usr/local && python3 api.py
+
