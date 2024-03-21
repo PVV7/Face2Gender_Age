@@ -79,12 +79,11 @@ class Aligner(object):
         aligned_face = cv2.warpAffine(crop_face_image.copy(), trans_matrix, (max_standard_side, max_standard_side))
         return aligned_face
 
+
     def _filter_kpts(self, kpts: np.ndarray) -> np.ndarray:
 
-        kpts = np.resize(kpts, (5, 3))
-        new_kpts = kpts[:, :2]
-
-        return new_kpts
+        kpts = np.resize(kpts, (5, 2))
+        return kpts
 
     def _face_info(self, box_and_points: List[Any]) -> List[Dict]:
 
@@ -116,11 +115,3 @@ class Aligner(object):
 
         return faces
 
-    # def save_crop(self):
-    #     faces = self.align_faces()
-    #     if len(faces) == 0:
-    #         return f'лиц нет'
-    #
-    #     for i, crop in enumerate(faces):
-    #         crop = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-    #         cv2.imwrite('croped_image_' + str(i) + '.jpg', crop)
