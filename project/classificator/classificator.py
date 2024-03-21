@@ -40,10 +40,13 @@ class Classificator(object):
 
     def _preprocess(self, image: np.ndarray) -> np.ndarray:
         img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, dsize=(112, 112), interpolation=cv2.INTER_AREA)
-        img = Image.fromarray(img)
-        transform = transforms.Compose([transforms.ToTensor()])
-        img = transform(img)
+        img = cv2.resize(img,
+                         dsize=(112, 112),
+                         interpolation=cv2.INTER_AREA)
+        img = img.transpose((2, 0, 1))[::-1, ]
+        img = np.ascontiguousarray(img, dtype=np.float32)
+        img = img[None, :] / 255
+
         return img
 
     def classificate(self, crops: List[np.ndarray]) -> List[Any]:
@@ -91,8 +94,8 @@ class Classificator(object):
             for age, gender in zip(obj[0], obj[1]):
                 age = int(np.round(age))
                 gender = np.argmax(gender)
-                res.append((age, gender))
-
+                if 0 <= age <= 16:
+                    res.append((age, gender))
         return res
 
 

@@ -31,7 +31,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /usr/project/upload_img
 
 RUN mkdir -p /usr/project/www/public
-COPY index.html /usr/project/www/public
+COPY ./project/server/index.html /usr/project/www/public
 
 
 CMD ["python", "test.py"]

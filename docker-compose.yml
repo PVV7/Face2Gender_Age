@@ -1,0 +1,38 @@
+services:
+  frontend:
+    container_name: "frontend"
+    image: nginx:alpine
+#    depends_on:
+#      - app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./app/conf.d:/etc/nginx/conf.d
+    networks:
+      - face_2g_a_net
+
+#добавить healtcheck для app
+#  app:
+#    container_name: "app"
+#    image: app_image
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    ports:
+#      - "8000:8000"
+#    volumes:
+#      - upload_image:/usr/project/upload_img
+#    networks:
+#      - face_2g_a_net
+
+
+volumes:
+  upload_image:
+    name: upload_image
+
+networks:
+  face_2g_a_net:
+      name: face_2g_a_net
+
+
+

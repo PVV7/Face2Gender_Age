@@ -19,5 +19,20 @@ age_dict = {
     15: '65-69',
     16: 'more than 70'}
 
-def convert_age(age: int) -> int:
-    pass
+gender_dict = {
+    0: 'Пол: Мужской',
+    1: 'Пол: Женский'
+}
+
+
+def convert_data(lst_data: List, to_str: bool=False) -> Any:
+    lst_new_data = []
+
+    for age, gender in lst_data:
+        lst_new_data.append((age_dict[age], gender_dict[gender]))
+
+    if to_str:
+        data_string = '\n'.join(map(lambda x: ' года, '.join(x), lst_new_data))
+        return data_string
+
+    return lst_new_data
