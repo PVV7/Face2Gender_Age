@@ -12,7 +12,7 @@ def predict_image(img_path):
     image = cv2.imread(image_path)
 
     # detecting faces in the image
-    ONNX_model = r'project/detector/weights/yolov6m_face.onnx'
+    ONNX_model = r'project/detector/ONNX/yolov6m_face.onnx'
     model_detector = Yolov6(ONNX_model)
     res = model_detector.detect(image)
 
@@ -21,7 +21,7 @@ def predict_image(img_path):
     align_images = aligner.align_faces(image, res)
 
     # classify persons by gender and age
-    classificator = Classificator(r'project/classificator/weights/Face2AgeGender.onnx')
+    classificator = Classificator(r'project/classificator/ONNX/Face2AgeGender.onnx')
     res = classificator.classificate(align_images)
 
 
