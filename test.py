@@ -7,12 +7,6 @@ import uvicorn
 from project.utils.output_utils import convert_data
 from project.utils.predict_image import predict_image
 
-from project.detector.detector import YoloModel
-from project.aligner.aligner import Aligner
-from project.classificator import Classificator
-import cv2
-
-
 
 UPLOAD_DIR = Path() / 'test'
 # UPLOAD_DIR = Path() / '/usr/project/upload_img'
