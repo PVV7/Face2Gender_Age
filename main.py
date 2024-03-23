@@ -9,7 +9,7 @@ from project.utils.predict_image import predict_image
 from pydantic import BaseModel
 
 
-UPLOAD_DIR = Path() / '/usr/project/upload_img'
+UPLOAD_DIR = Path() / 'project/upload_image'
 
 app = FastAPI()
 
@@ -21,11 +21,7 @@ class Item(BaseModel):
 
 @app.get('/')
 async def mainpage() -> str:
-    return FileResponse('/usr/project/www/public/index.html')
-
-@app.get('/test', status_code=200)
-async def check():
-    return {'message': "Successfully"}
+    return FileResponse('project/web/index.html')
 
 
 @app.post("/uploadfile", response_model=list[Item])

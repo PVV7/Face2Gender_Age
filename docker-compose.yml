@@ -2,9 +2,6 @@ services:
   frontend:
     container_name: "frontend"
     image: frontend_image
-    depends_on:
-      app:
-        condition: service_healthy
     ports:
       - "8080:8080"
     restart: always
@@ -20,11 +17,6 @@ services:
       - upload_image:/usr/project/upload_img
     networks:
       - face_2g_a_net
-    healthcheck:
-      test: ["CMD", "curl", "--f","app:8000/test"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
 
 volumes:
   upload_image:
